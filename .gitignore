@@ -1,0 +1,21 @@
+# Environnements virtuels
+venv/
+env/
+
+# Fichiers Python
+__pycache__/
+*.pyc
+
+# Base de données locale
+db.sqlite3
+
+# Variables d'environnement
+.env
+
+# Migrations (optionnel)
+*/migrations/
+
+# Fichiers systèmes / IDE
+.DS_Store
+.idea/
+.vscode/
