@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+import dj_database_url  # AJOUT
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -48,6 +49,7 @@ AUTH_USER_MODEL = 'memoire.User'
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',  # Doit être en premier
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",  # AJOUT pour les static files
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -76,21 +78,31 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
-# Database
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DATABASE_NAME', 'neondb'),
-        'USER': os.getenv('DATABASE_USER', 'neondb_owner'),
-        'PASSWORD': os.getenv('DATABASE_PASSWORD', 'npg_up4NRTQzyV9W'),
-        'HOST': os.getenv('DATABASE_HOST', 'ep-plain-night-adbaicnc-pooler.c-2.us-east-1.aws.neon.tech'),
-        'PORT': os.getenv('DATABASE_PORT', '5432'),
-        'OPTIONS': {
-            'sslmode': 'require',
-            'channel_binding': 'require'
+# Database - CONFIGURATION CORRIGÉE
+# Utilise DATABASE_URL de Render en priorité, sinon les variables individuelles
+DATABASE_URL = os.getenv('DATABASE_URL')
+if DATABASE_URL:
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=DATABASE_URL,
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
+    }
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('DATABASE_NAME', 'neondb'),
+            'USER': os.getenv('DATABASE_USER', 'neondb_owner'),
+            'PASSWORD': os.getenv('DATABASE_PASSWORD', 'npg_up4NRTQzyV9W'),
+            'HOST': os.getenv('DATABASE_HOST', 'ep-plain-night-adbaicnc-pooler.c-2.us-east-1.aws.neon.tech'),
+            'PORT': os.getenv('DATABASE_PORT', '5432'),
+            'OPTIONS': {
+                'sslmode': 'require',
+            }
         }
     }
-}
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -117,6 +129,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = "static/"
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"  # AJOUT
 
 # Media files (fichiers uploadés)
 MEDIA_URL = '/media/'
@@ -142,12 +155,13 @@ REST_FRAMEWORK = {
     ],
 }
 
-# CORS configuration
+# CORS configuration - AJOUTEZ VOTRE FRONTEND RENDER
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://localhost:3001",
     "http://127.0.0.1:3001",
+    "https://votre-frontend-react.onrender.com",  # AJOUTEZ VOTRE URL RENDER
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -178,23 +192,24 @@ SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_AGE = 1209600  # 2 weeks in seconds
 
-# CSRF configuration
+# CSRF configuration - AJOUTEZ VOTRE FRONTEND RENDER
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "https://votre-frontend-react.onrender.com",  # AJOUTEZ VOTRE URL RENDER
 ]
 
 # Email configuration
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # Pour le développement
 
 # Configuration SMTP pour la production (décommentez et configurez en production)
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
-EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
-EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true'
-EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
-DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@memoirerodrigue.com')
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+# EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
+# EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true'
+# EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+# EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+# DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@memoirerodrigue.com')
 
 # Logging configuration
 LOGGING = {

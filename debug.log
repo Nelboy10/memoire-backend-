@@ -2885,3 +2885,15 @@ INFO 2025-10-20 10:59:01,444 basehttp 3656 10512 "OPTIONS /api/memoires/4/downlo
 INFO 2025-10-20 10:59:14,250 basehttp 3656 21376 "POST /api/memoires/4/download/ HTTP/1.1" 200 100
 INFO 2025-10-20 10:59:24,787 basehttp 3656 20160 "GET /api/etudiant/mes-memoires/ HTTP/1.1" 200 881
 INFO 2025-10-20 10:59:43,514 basehttp 3656 12916 - Broken pipe from ('127.0.0.1', 58589)
+INFO 2025-10-20 12:32:22,316 autoreload 21768 3848 Watching for file changes with StatReloader
+WARNING 2025-10-20 12:32:45,410 log 21768 9420 Forbidden: /api/entites/
+WARNING 2025-10-20 12:32:45,410 basehttp 21768 9420 "GET /api/entites/ HTTP/1.1" 403 68
+INFO 2025-10-20 12:32:47,023 basehttp 21768 15800 "GET /api/memoires/public/ HTTP/1.1" 200 973
+INFO 2025-10-20 12:35:13,361 basehttp 21768 14500 - Broken pipe from ('127.0.0.1', 62039)
+INFO 2025-10-20 12:35:15,491 basehttp 21768 4616 "GET /api/memoires/public/ HTTP/1.1" 200 973
+INFO 2025-10-20 12:35:24,661 basehttp 21768 4616 "GET /api/memoires/public/ HTTP/1.1" 200 973
+INFO 2025-10-20 12:35:33,847 basehttp 21768 4616 "GET /api/memoires/public/ HTTP/1.1" 200 973
+INFO 2025-10-20 12:35:43,837 basehttp 21768 21304 "GET /api/memoires/public/ HTTP/1.1" 200 973
+INFO 2025-10-20 12:48:31,782 autoreload 21768 3848 C:\Users\Dell\memoire_backend\config\settings.py changed, reloading.
+INFO 2025-10-20 12:48:33,781 autoreload 3328 24268 Watching for file changes with StatReloader
+INFO 2025-10-20 12:54:04,096 autoreload 10988 9820 Watching for file changes with StatReloader
