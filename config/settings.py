@@ -28,7 +28,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', "django-insecure-gsi5j(a=_+w=@c_^@*@f^_0!z&
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0','memoire-backend-4n00.onrender.com',]
 
 # Application definition
 INSTALLED_APPS = [
