@@ -1,1 +1,1 @@
-web: gunicorn memoire_backend.wsgi
+web: gunicorn config.wsgi
