@@ -196,7 +196,7 @@ SESSION_COOKIE_AGE = 1209600  # 2 weeks in seconds
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://memoire-frontend.vercel.app/login",  
+    "https://memoire-frontend.vercel.app",  
 ]
 
 # Email configuration
