@@ -187,16 +187,16 @@ CORS_ALLOW_HEADERS = [
     'x-requested-with',
 ]
 
-# Session configuration
+
 SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_AGE = 1209600  # 2 weeks in seconds
 
-# CSRF configuration - AJOUTEZ VOTRE FRONTEND RENDER
+
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://votre-frontend-react.onrender.com",  # AJOUTEZ VOTRE URL RENDER
+    "https://memoire-frontend.vercel.app/login",  
 ]
 
 # Email configuration
