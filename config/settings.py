@@ -30,7 +30,13 @@ SECRET_KEY = os.getenv('SECRET_KEY', "django-insecure-gsi5j(a=_+w=@c_^@*@f^_0!z&
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0', 'memoire-backend-4n00.onrender.com',]
+ALLOWED_HOSTS = ['localhost',
+                  '127.0.0.1',
+                  '0.0.0.0',
+                  'memoire-backend-4n00.onrender.com',
+                 
+                  'memoirebackend-0qqy.onrender.com',   # Votre nouveau domaine Render
+                  '.onrender.com', ]
 
 # Application definition
 INSTALLED_APPS = [
@@ -148,7 +154,7 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',  # Garder pour l'admin Django
     ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly'
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
@@ -189,12 +195,40 @@ SIMPLE_JWT = {
 }
 
 # CORS configuration
+# CORS configuration - AMÉLIORÉE
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://localhost:3001",
     "http://127.0.0.1:3001",
     "https://memoire-frontend.vercel.app",
+]
+
+CORS_ALLOW_CREDENTIALS = True
+
+# Ajoutez ces configurations
+CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+
+# Pour le développement, autoriser toutes les origines
+if DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://memoire-frontend.vercel.app",
+    
 ]
 
 CORS_ALLOW_CREDENTIALS = True
