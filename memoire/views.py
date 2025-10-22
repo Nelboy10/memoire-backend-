@@ -15,14 +15,40 @@ from django.conf import settings
 from django.http import FileResponse
 import os
 
+# Import JWT
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
+
 from .models import User, Entite, Memoire, DownloadLog, Statistiques
 from .serializers import *
 from .permissions import *
 
-# Vues d'authentification
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def current_user(request):
+    """
+    Récupérer les informations de l'utilisateur connecté via JWT
+    """
+    user = request.user
+    return Response({
+        'id': user.id,
+        'email': user.email,
+        'first_name': user.first_name,
+        'last_name': user.last_name,
+        'is_staff': user.is_staff,
+        'role': user.role,
+        'entite': user.entite.id if user.entite else None,
+        'entite_nom': user.entite.nom if user.entite else None,
+    })
+
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
 def login_view(request):
+    """
+    Connexion avec authentification JWT
+    """
     username = request.data.get('username')
     password = request.data.get('password')
     
@@ -43,10 +69,14 @@ def login_view(request):
                     status=status.HTTP_403_FORBIDDEN
                 )
             
-            login(request, user)
+            # Générer les tokens JWT
+            refresh = RefreshToken.for_user(user)
+            
             serializer = UserSerializer(user)
             return Response({
                 'user': serializer.data,
+                'access': str(refresh.access_token),
+                'refresh': str(refresh),
                 'message': 'Connexion réussie'
             })
         else:
@@ -61,25 +91,29 @@ def login_view(request):
         )
 
 @api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
 def logout_view(request):
-    logout(request)
-    return Response({'message': 'Déconnexion réussie'})
-
-@api_view(['GET'])
-def current_user(request):
     """
-    Récupérer les informations de l'utilisateur connecté
+    Déconnexion - Blacklist le refresh token
     """
-    if request.user.is_authenticated:
-        serializer = UserSerializer(request.user)
-        return Response(serializer.data)
-    return Response({'error': 'Non authentifié'}, status=status.HTTP_401_UNAUTHORIZED)
+    try:
+        refresh_token = request.data.get('refresh')
+        if refresh_token:
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+        
+        # Logout de la session Django (au cas où)
+        logout(request)
+        
+        return Response({'message': 'Déconnexion réussie'})
+    except Exception as e:
+        return Response({'error': 'Token invalide'}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
 def register_student(request):
     """
-    Inscription d'un étudiant (compte temporaire)
+    Inscription d'un étudiant (compte temporaire) avec JWT
     """
     data = request.data.copy()
     data['role'] = 'etudiant'
@@ -87,20 +121,25 @@ def register_student(request):
     serializer = UserSerializer(data=data)
     if serializer.is_valid():
         user = serializer.save()
-        login(request, user)
-        return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
+        
+        # Générer les tokens JWT après l'inscription
+        refresh = RefreshToken.for_user(user)
+        
+        return Response({
+            'user': UserSerializer(user).data,
+            'access': str(refresh.access_token),
+            'refresh': str(refresh),
+            'message': 'Inscription réussie'
+        }, status=status.HTTP_201_CREATED)
     
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# Vue pour le changement de mot de passe
 @api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
 def change_password(request):
     """
     Changer le mot de passe de l'utilisateur connecté
     """
-    if not request.user.is_authenticated:
-        return Response({'error': 'Non authentifié'}, status=status.HTTP_401_UNAUTHORIZED)
-    
     form = PasswordChangeForm(request.user, request.data)
     
     if form.is_valid():
@@ -109,6 +148,27 @@ def change_password(request):
         return Response({'message': 'Mot de passe modifié avec succès'})
     else:
         return Response({'error': form.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def refresh_token_view(request):
+    """
+    Rafraîchir le token JWT
+    """
+    try:
+        refresh_token = request.data.get('refresh')
+        if not refresh_token:
+            return Response({'error': 'Refresh token requis'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        token = RefreshToken(refresh_token)
+        new_access = str(token.access_token)
+        
+        return Response({
+            'access': new_access,
+            'message': 'Token rafraîchi avec succès'
+        })
+    except Exception as e:
+        return Response({'error': 'Token invalide'}, status=status.HTTP_400_BAD_REQUEST)
 
 # Fonctions utilitaires pour les statistiques
 def get_memoires_par_mois(entite=None):
@@ -336,6 +396,12 @@ class UserViewSet(viewsets.ModelViewSet):
             return Response(serializer.data)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=False, methods=['get'])
+    def me(self, request):
+        """Récupérer les informations de l'utilisateur connecté"""
+        serializer = self.get_serializer(request.user)
+        return Response(serializer.data)
 
 class EntiteViewSet(viewsets.ModelViewSet):
     queryset = Entite.objects.all()
@@ -556,6 +622,16 @@ class MemoireViewSet(viewsets.ModelViewSet):
             return self.get_paginated_response(serializer.data)
         
         serializer = self.get_serializer(public_memoires, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'], permission_classes=[IsStudent])
+    def mes_memoires(self, request):
+        """Liste des mémoires de l'étudiant connecté"""
+        if request.user.is_account_expired():
+            return Response({'error': 'Compte expiré'}, status=status.HTTP_403_FORBIDDEN)
+        
+        memoires = Memoire.objects.filter(auteur=request.user).order_by('-date_soumission')
+        serializer = self.get_serializer(memoires, many=True)
         return Response(serializer.data)
 
 class DownloadLogViewSet(viewsets.ReadOnlyModelViewSet):
@@ -869,7 +945,7 @@ def etudiant_dashboard(request):
 
 @api_view(['GET'])
 @permission_classes([IsStudent])
-def mes_memoires(request):
+def mes_memoires_view(request):
     """
     Liste des mémoires déposés par l'étudiant connecté
     """

@@ -2,6 +2,11 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+    TokenVerifyView,
+)
 
 router = DefaultRouter()
 router.register(r'users', views.UserViewSet)
@@ -11,7 +16,13 @@ router.register(r'downloads', views.DownloadLogViewSet)
 router.register(r'statistiques', views.StatistiquesViewSet)
 
 urlpatterns = [
-    # Authentification
+    # Authentification JWT
+    path('auth/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('auth/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
+    path('auth/token/custom-refresh/', views.refresh_token_view, name='token_custom_refresh'),
+    
+    # Authentification personnalisée
     path('auth/login/', views.login_view, name='login'),
     path('auth/logout/', views.logout_view, name='logout'),
     path('auth/current-user/', views.current_user, name='current_user'),
@@ -38,17 +49,17 @@ urlpatterns = [
     
     # Étudiant
     path('etudiant/dashboard/', views.etudiant_dashboard, name='etudiant_dashboard'),
-    path('etudiant/mes-memoires/', views.mes_memoires, name='mes_memoires'),
+    path('etudiant/mes-memoires/', views.mes_memoires_view, name='mes_memoires'),
     path('etudiant/deposer-memoire/', views.deposer_memoire, name='deposer_memoire'),
     path('etudiant/statistiques/', views.statistiques_personnelles, name='statistiques_personnelles'),
     
-    # Téléchargement public (nouveaux endpoints)
+    # Téléchargement public
     path('public/memoires/<int:memoire_id>/telecharger/', views.telecharger_memoire_direct, name='telecharger_direct'),
     
     # API ViewSets
     path('', include(router.urls)),
     
-    # Interface d'administration DRF
+    # Interface d'administration DRF (optionnel)
     path('api-auth/', include('rest_framework.urls')),
 ]
 
