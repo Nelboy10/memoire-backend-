@@ -101,15 +101,8 @@ if DATABASE_URL:
 else:
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.getenv('DATABASE_NAME', 'neondb'),
-            'USER': os.getenv('DATABASE_USER', 'neondb_owner'),
-            'PASSWORD': os.getenv('DATABASE_PASSWORD', 'npg_up4NRTQzyV9W'),
-            'HOST': os.getenv('DATABASE_HOST', 'ep-plain-night-adbaicnc-pooler.c-2.us-east-1.aws.neon.tech'),
-            'PORT': os.getenv('DATABASE_PORT', '5432'),
-            'OPTIONS': {
-                'sslmode': 'require',
-            }
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
 
@@ -151,7 +144,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-        'rest_framework.authentication.SessionAuthentication',  # Garder pour l'admin Django
+        'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticatedOrReadOnly'
@@ -162,6 +155,14 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.JSONRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',
     ],
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '30/minute',
+        'user': '120/minute',
+    },
 }
 
 # Simple JWT Configuration - AJOUT
@@ -195,7 +196,6 @@ SIMPLE_JWT = {
 }
 
 # CORS configuration
-# CORS configuration - AMÉLIORÉE
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
@@ -206,32 +206,7 @@ CORS_ALLOWED_ORIGINS = [
 
 CORS_ALLOW_CREDENTIALS = True
 
-# Ajoutez ces configurations
 CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
-CORS_ALLOW_HEADERS = [
-    'accept',
-    'accept-encoding',
-    'authorization',
-    'content-type',
-    'dnt',
-    'origin',
-    'user-agent',
-    'x-csrftoken',
-    'x-requested-with',
-]
-
-# Pour le développement, autoriser toutes les origines
-if DEBUG:
-    CORS_ALLOW_ALL_ORIGINS = True
-
-CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "https://memoire-frontend.vercel.app",
-    
-]
-
-CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOW_METHODS = [
     'DELETE',
@@ -254,21 +229,23 @@ CORS_ALLOW_HEADERS = [
     'x-requested-with',
 ]
 
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://memoire-frontend.vercel.app",
+]
+
 # Session configuration
 SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_AGE = 1209600  # 2 weeks in seconds
 
-CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "https://memoire-frontend.vercel.app",  
-]
-
 # Email configuration
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # Pour le développement
+if DEBUG:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
 EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
 EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true'
@@ -319,7 +296,7 @@ LOGGING = {
     },
 }
 
-# Security settings (pour la production, décommentez ces lignes)
+# Security settings
 if not DEBUG:
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
@@ -350,11 +327,8 @@ AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
 ]
 
-# Configuration pour les tests
+# Pour le développement, autoriser toutes les origines CORS et logging détaillé
 if DEBUG:
-    # En développement, permettre toutes les origines CORS
     CORS_ALLOW_ALL_ORIGINS = True
-    
-    # Logging plus détaillé en développement
     LOGGING['loggers']['django']['level'] = 'DEBUG'
     LOGGING['loggers']['memoire']['level'] = 'DEBUG'

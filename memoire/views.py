@@ -4,7 +4,7 @@ from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.response import Response
 from django.contrib.auth import login, logout, authenticate, update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
-from django.db.models import Q, Count
+from django.db.models import Q, Count, F, Sum
 from django.db.models.functions import TruncMonth
 from django.utils import timezone
 from datetime import timedelta
@@ -21,8 +21,8 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 
 from .models import User, Entite, Memoire, DownloadLog, Statistiques
-from .serializers import *
-from .permissions import *
+from .serializers import UserSerializer, EntiteSerializer, MemoireSerializer, DownloadLogSerializer, StatistiquesSerializer
+from .permissions import IsAdminGeneral, IsAdminEntite, IsSecretaire, IsStudent, IsOwnerOrReadOnly
 
 
 @api_view(['GET'])
@@ -458,9 +458,9 @@ class MemoireViewSet(viewsets.ModelViewSet):
             entite=memoire.entite
         )
         
-        # Incrémenter le compteur de téléchargements
-        memoire.nb_telechargements += 1
-        memoire.save()
+        # Incrémenter le compteur de téléchargements (atomique)
+        Memoire.objects.filter(pk=memoire.pk).update(nb_telechargements=F('nb_telechargements') + 1)
+        memoire.refresh_from_db()
         
         # Obtenir le chemin absolut du fichier
         file_path = memoire.fichier.path
@@ -701,9 +701,9 @@ def telecharger_memoire_direct(request, memoire_id):
             entite=memoire.entite
         )
     
-    # Incrémenter le compteur
-    memoire.nb_telechargements += 1
-    memoire.save()
+    # Incrémenter le compteur (atomique)
+    Memoire.objects.filter(pk=memoire.pk).update(nb_telechargements=F('nb_telechargements') + 1)
+    memoire.refresh_from_db()
     
     # Retourner le fichier
     response = FileResponse(open(file_path, 'rb'))
@@ -927,7 +927,7 @@ def etudiant_dashboard(request):
     # Total des téléchargements des mémoires de l'étudiant
     total_telechargements = Memoire.objects.filter(
         auteur=request.user
-    ).aggregate(total=Count('nb_telechargements'))['total'] or 0
+    ).aggregate(total=Sum('nb_telechargements'))['total'] or 0
     
     # Dernier mémoire déposé
     dernier_memoire = Memoire.objects.filter(auteur=request.user).order_by('-date_soumission').first()
@@ -976,10 +976,8 @@ def deposer_memoire(request):
             # Sauvegarder avec l'utilisateur courant comme auteur
             memoire = serializer.save(auteur=request.user)
             
-            # Par défaut, le mémoire n'est pas public (doit être validé par la secrétaire)
-            # Utiliser la valeur du formulaire ou False par défaut
-            est_public = data.get('est_public', 'false').lower() == 'true'
-            memoire.est_public = est_public
+            # Forcer est_public à False : le mémoire doit être validé par la secrétaire
+            memoire.est_public = False
             memoire.save()
             
             return Response({

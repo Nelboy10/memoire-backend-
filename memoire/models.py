@@ -37,10 +37,12 @@ class Entite(models.Model):
     def __str__(self):
         return self.nom
 
+from .validators import validate_memoire_file
+
 class Memoire(models.Model):
     titre = models.CharField(max_length=500)
     resume = models.TextField()
-    fichier = models.FileField(upload_to='memoires/')
+    fichier = models.FileField(upload_to='memoires/', validators=[validate_memoire_file])
     auteur = models.ForeignKey(User, on_delete=models.CASCADE, related_name='memoires')
     entite = models.ForeignKey(Entite, on_delete=models.CASCADE)
     est_public = models.BooleanField(default=True)

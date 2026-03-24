@@ -4,7 +4,7 @@ from .models import User, Entite, Memoire, DownloadLog, Statistiques
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
-    is_expired = serializers.ReadOnlyField()
+    is_expired = serializers.SerializerMethodField()
     
     class Meta:
         model = User
@@ -14,10 +14,13 @@ class UserSerializer(serializers.ModelSerializer):
     
     def create(self, validated_data):
         password = validated_data.pop('password')
-        user = User.objects.create_user(**validated_data)
+        user = User(**validated_data)
         user.set_password(password)
         user.save()
         return user
+    
+    def get_is_expired(self, obj):
+        return obj.is_account_expired()
     
     def validate_password(self, value):
         validate_password(value)
